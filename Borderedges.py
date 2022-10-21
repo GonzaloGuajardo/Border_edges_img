@@ -1,19 +1,54 @@
 # Programa que detecta los bordes en una imagen
 # Program that detects the edges in an image
-import cv2
-from cv2 import line
-import numpy as np
+#=====================================================#
+from lib2to3.pytree import convert
+import sys
+from PIL import Image, ImageFilter
 
-# Carga de imagen /Upload the image
-img = cv2.imread('Original.png')
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-edges = cv2.Canny(gray, 50, 150, apertureSize = 3)
-lines = cv2.HoughLinesP(edges, 1, np.pi/180, 100, minLineLength = 50, maxLineGap = 10)
+#  Carga de imagen /Upload the image
+image = Image.open("tortu.jpg").convert('L')
 
-for line in lines:
-    x1, y1, x2, y2 = line[0]
-    cv2.line(img, (x1 , y1), (x2 , y2), (0 , 255 , 0), 1, cv2.LINE_AA)
+def detector_debordes(tipo):
+    if tipo == 'Prewitt':
+        factor = 6
+        coeficientes_h =  [-1, 0, 1, -1, 0, 1, -1, 0, 1]
+        coeficientes_v =  [-1, -1, -1, 0, 0, 0, 1, 1, 1]
+        coeficientes_h1 = [1, 0, -1, 2, 0, -2, 1, 0, -1]
+        coeficientes_v1 = [1, 2, 1, 0, 0, 0, -1, -2, -1]
+    elif tipo == 'Sobel':
+        factor = 8
+        coeficientes_h =  [-1, 0, 1, -2, 0, 2, -1, 0, 1]
+        coeficientes_v =  [-1, -2, -1, 0, 0, 0, 1, 2, 1]
+        coeficientes_h1 = [1, 0, -1, 2, 0, -2, 1, 0, -1]
+        coeficientes_v1 = [1, 2, 1, 0, 0, 0, -1, -2, -1]
+    else:
+        sys.exit(0)
+    datos_h = image.filter(ImageFilter.Kernel((3,3), coeficientes_h, factor)).getdata()
+    datos_v = image.filter(ImageFilter.Kernel((3,3), coeficientes_v, factor)).getdata()
+    datos = []
 
-cv2.imshow('Bordes', edges)
-cv2.imshow('Lineas sobre la imagen original', img)
-cv2.waitKey()
+    for x in range(len(datos_h)):
+        datos.append(round(((datos_h[x]**2)+(datos_v[x]**2))**0.5))
+
+    datos_h = image.filter(ImageFilter.Kernel((3,3), coeficientes_h, factor)).getdata()
+    datos_v = image.filter(ImageFilter.Kernel((3,3), coeficientes_v, factor)).getdata()
+
+    datos_signo_contrario = []
+
+    for x in range(len(datos_h)):
+        datos_signo_contrario.append(round(((datos_h[x]**2)+(datos_v[x]**2))**0.5))
+    
+    datos_bordes = []
+
+    for x in range(len(datos_h)):
+        datos_bordes.append(datos[x]+datos_signo_contrario[x])
+
+    return datos_bordes
+
+datos_bordes = detector_debordes('Prewitt')
+
+nueva_imagen = Image.new('L', image.size)
+nueva_imagen.putdata(datos_bordes)
+nueva_imagen.save('tortu_N.jpg')
+image.close()
+nueva_imagen.close()
